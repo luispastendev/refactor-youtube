@@ -1,128 +1,53 @@
-<?php 
+<?php
 
-class User implements SplSubject { 
+class Course {
 
-    private $email; 
-    private $username; 
-    private $mobile; 
-    private $password; 
-    /** 
-        * @var SplObjectStorage 
-        */ 
-    private $observers = NULL; 
+    private $isAdvanced = false;
+    private $name = '';
 
-    public function __construct($email, $username, $mobile, $password) { 
-        $this->email = $email; 
-        $this->username = $username; 
-        $this->mobile = $mobile; 
-        $this->password = $password; 
+    public function __construct(string $name, bool $isAdvanced) {
+        $this->isAdvanced = $isAdvanced;
+        $this->name = $name;
+    }
 
-        $this->observers = new SplObjectStorage(); 
-    } 
-
-    public function attach(SplObserver $observer) { 
-        $this->observers->attach($observer); 
-    } 
-
-    public function detach(SplObserver $observer) { 
-        $this->observers->detach($observer);
-    } 
-
-    public function notify() { 
-        $userInfo = array(   
-            'username' => $this->username, 
-            'password' => $this->password, 
-            'email' => $this->email, 
-            'mobile' => $this->mobile, 
-        ); 
-        foreach ($this->observers as $observer) { 
-            $observer->update($this, $userInfo); 
-        } 
-    } 
-
-    public function create() { 
-        echo __METHOD__, PHP_EOL; 
-        $this->notify(); 
-    } 
-
-    public function changePassword($newPassword) { 
-        echo __METHOD__, PHP_EOL; 
-        $this->password = $newPassword; 
-        $this->notify(); 
-    } 
-
-    public function resetPassword() { 
-        echo __METHOD__, PHP_EOL; 
-        $this->password = mt_rand(100000, 999999); 
-        $this->notify(); 
-    } 
-
-} 
-
-class EmailSender implements SplObserver { 
-
-   public function update(SplSubject $subject) { 
-       if (func_num_args() === 2) { 
-           $userInfo = func_get_arg(1); 
-           echo "Se envió correctamente un correo electrónico a {$userInfo['email']}. El contenido es: Hola {$userInfo['username']}". 
-                        "Su nueva contraseña es {$userInfo['password']}, manténgala segura.", PHP_EOL; 
-       } 
-   } 
-
-} 
-
-
-class MobileSender implements SplObserver { 
-
-    public function update(SplSubject $subject) { 
-        if (func_num_args() === 2) { 
-            $userInfo = func_get_arg(1); 
-            echo "Se envió correctamente un mobile a {$userInfo['mobile']}. El contenido es: Hola {$userInfo['username']}". 
-                         "Su nueva contraseña es {$userInfo['password']}, manténgala segura", PHP_EOL; 
-        } 
-    } 
-
-} 
-
-class WebsiteSender implements SplObserver { 
-
-    public function update(SplSubject $subject){
-        if (func_num_args() === 2) { 
-            $userInfo = func_get_arg(1); 
-            echo "Se cambio la password para la cuenta {$userInfo['email']}". 
-                    "Su nueva contraseña es {$userInfo['password']}, manténgala segura", PHP_EOL; 
-        } 
+    public function isAdvanced(): bool {
+        return $this->isAdvanced;
     }
 }
- 
- 
 
-// header('Content-Type: text/plain'); 
+class Person {
+    private $courses; // SplObjectStorage
 
-// function __autoload($class_name) { 
-//    require_once "$class_name.php"; 
-// } 
+    public function getCourses() {
+        return $this->courses;
+    }
+    public function setCourses(SplObjectStorage $arg) {
+        $this->courses = $arg;
+    }
+}
 
-$email_sender = new EmailSender(); 
-$mobile_sender = new MobileSender(); 
-$web_sender = new WebsiteSender(); 
+// Client code
+$luis = new Person();
 
-$user = new User('usuario1@dominio.com', 'Zhang San', '13610002000', '123456'); 
+$s = new SplObjectStorage();
+$s->attach(new Course("React", true));
+$s->attach(new Course("Codeigniter", true));
+$luis->setCourses($s);
+assert(2 === $luis->getCourses()->count());
 
-  // Notificar a los usuarios por correo electrónico y SMS al crear usuarios
-// $user->attach($email_sender); 
-// $user->attach($mobile_sender); 
-// $user->create($user); 
-// echo PHP_EOL; 
+$refact = new Course("Vue", true);
+$luis->getCourses()->attach($refact);
+$luis->getCourses()->attach(new Course("Angular", false));
+assert(4 === $luis->getCourses()->count());
 
-//   // Si el usuario restablece la contraseña después de olvidar la contraseña, debe notificar al usuario a través de una pequeña nota
-$user->attach($web_sender); 
-$user->attach($email_sender); 
-$user->resetPassword(); 
-echo PHP_EOL; 
+$luis->getCourses()->detach($refact);
+assert(3 === $luis->getCourses()->count());
 
-//   // El usuario ha cambiado la contraseña, pero no envía mensajes de texto a su teléfono móvil
-// $user->detach($mobile_sender); 
-// $user->changePassword('654321'); 
-// echo PHP_EOL; 
+$count = 0;
+foreach ($luis->getCourses() as $course) {
+    if ($course->isAdvanced()) {
+        $count++;
+    }
+}
 
+print("Advanced courses: " . $count);
